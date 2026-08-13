@@ -1,6 +1,6 @@
 import typer
 
-from termux_toolbox.commands import feedback, media, messaging, sensors
+from termux_toolbox.commands import device, feedback, media, messaging, sensors
 
 app = typer.Typer(help="A CLI toolbox exposing Termux:API device capabilities.")
 
@@ -34,3 +34,8 @@ app.add_typer(feedback.clipboard_app, name="clipboard")
 app.add_typer(media.camera_app, name="camera")
 app.add_typer(media.media_app, name="media")
 app.add_typer(media.mic_app, name="mic")
+
+app.command("torch")(device.torch)
+app.command("volume")(device.volume)
+app.command("brightness")(device.brightness)
+app.add_typer(device.wifi_app, name="wifi")
