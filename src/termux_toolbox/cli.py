@@ -1,6 +1,6 @@
 import typer
 
-from termux_toolbox.commands import sensors
+from termux_toolbox.commands import messaging, sensors
 
 app = typer.Typer(help="A CLI toolbox exposing Termux:API device capabilities.")
 
@@ -20,3 +20,7 @@ def main(
 app.command("battery")(sensors.battery)
 app.command("location")(sensors.location)
 app.add_typer(sensors.sensor_app, name="sensor")
+
+app.command("call")(messaging.call)
+app.add_typer(messaging.sms_app, name="sms")
+app.add_typer(messaging.contacts_app, name="contacts")
