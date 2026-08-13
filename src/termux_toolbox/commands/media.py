@@ -1,3 +1,5 @@
+from enum import Enum
+
 import typer
 
 from termux_toolbox.core.errors import handle_errors
@@ -9,15 +11,20 @@ media_app = typer.Typer(help="Control on-device media playback.")
 mic_app = typer.Typer(help="Record audio with the device microphone.")
 
 
+class Camera(str, Enum):
+    front = "front"
+    back = "back"
+
+
 @camera_app.command("photo")
 @handle_errors
 def camera_photo(
     ctx: typer.Context,
     output_path: str = typer.Argument(..., help="File path to save the photo to."),
-    camera: str = typer.Option("back", "--camera", help="'front' or 'back'."),
+    camera: Camera = typer.Option(Camera.back, "--camera", help="'front' or 'back'."),
 ) -> None:
     """Take a photo."""
-    camera_id = "0" if camera == "back" else "1"
+    camera_id = "0" if camera == Camera.back else "1"
     result = run_termux_api("termux-camera-photo", args=["-c", camera_id, output_path])
     render(result, as_json=is_json_mode(ctx))
 

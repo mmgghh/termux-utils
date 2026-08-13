@@ -38,13 +38,17 @@ def test_battery_prints_clean_error_on_command_failed():
 def test_location_passes_provider_option():
     with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
         runner.invoke(app, ["location", "--provider", "network"])
-    mock_run.assert_called_once_with("termux-location", args=["-p", "network", "-r", "once"])
+    mock_run.assert_called_once_with(
+        "termux-location", args=["-p", "network", "-r", "once"], timeout=60.0
+    )
 
 
 def test_location_defaults_to_gps():
     with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
         runner.invoke(app, ["location"])
-    mock_run.assert_called_once_with("termux-location", args=["-p", "gps", "-r", "once"])
+    mock_run.assert_called_once_with(
+        "termux-location", args=["-p", "gps", "-r", "once"], timeout=60.0
+    )
 
 
 def test_sensor_list():
@@ -59,5 +63,15 @@ def test_sensor_read_builds_expected_args():
     with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
         runner.invoke(app, ["sensor", "read", "Accelerometer", "--delay-ms", "500", "--limit", "3"])
     mock_run.assert_called_once_with(
-        "termux-sensor", args=["-s", "Accelerometer", "-d", "500", "-n", "3"]
+        "termux-sensor", args=["-s", "Accelerometer", "-d", "500", "-n", "3"], timeout=15.0
+    )
+
+
+def test_sensor_read_timeout_scales_with_delay_and_limit():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
+        runner.invoke(
+            app, ["sensor", "read", "Accelerometer", "--delay-ms", "10000", "--limit", "5"]
+        )
+    mock_run.assert_called_once_with(
+        "termux-sensor", args=["-s", "Accelerometer", "-d", "10000", "-n", "5"], timeout=55.0
     )

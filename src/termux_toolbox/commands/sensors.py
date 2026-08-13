@@ -1,3 +1,5 @@
+from enum import Enum
+
 import typer
 
 from termux_toolbox.core.errors import handle_errors
@@ -5,6 +7,12 @@ from termux_toolbox.core.exec import run_termux_api
 from termux_toolbox.core.output import is_json_mode, render
 
 sensor_app = typer.Typer(help="Read device sensors.")
+
+
+class LocationProvider(str, Enum):
+    gps = "gps"
+    network = "network"
+    passive = "passive"
 
 
 @handle_errors
@@ -17,10 +25,14 @@ def battery(ctx: typer.Context) -> None:
 @handle_errors
 def location(
     ctx: typer.Context,
-    provider: str = typer.Option("gps", "--provider", help="gps, network, or passive."),
+    provider: LocationProvider = typer.Option(
+        LocationProvider.gps, "--provider", help="gps, network, or passive."
+    ),
 ) -> None:
     """Show current device location."""
-    result = run_termux_api("termux-location", args=["-p", provider, "-r", "once"])
+    result = run_termux_api(
+        "termux-location", args=["-p", provider.value, "-r", "once"], timeout=60.0
+    )
     render(result, as_json=is_json_mode(ctx))
 
 
@@ -42,5 +54,6 @@ def sensor_read(
 ) -> None:
     """Read values from a specific sensor."""
     args = ["-s", sensor_name, "-d", str(delay_ms), "-n", str(limit)]
-    result = run_termux_api("termux-sensor", args=args)
+    timeout = max(15.0, (delay_ms * limit) / 1000 + 5)
+    result = run_termux_api("termux-sensor", args=args, timeout=timeout)
     render(result, as_json=is_json_mode(ctx))

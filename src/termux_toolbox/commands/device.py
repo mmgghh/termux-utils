@@ -1,3 +1,5 @@
+from enum import Enum
+
 import typer
 
 from termux_toolbox.core.errors import handle_errors
@@ -7,16 +9,18 @@ from termux_toolbox.core.output import is_json_mode, render
 wifi_app = typer.Typer(help="Inspect and toggle WiFi.")
 
 
+class TorchState(str, Enum):
+    on = "on"
+    off = "off"
+
+
 @handle_errors
 def torch(
     ctx: typer.Context,
-    state: str = typer.Argument(..., help="'on' or 'off'."),
+    state: TorchState = typer.Argument(..., help="'on' or 'off'."),
 ) -> None:
     """Turn the camera flashlight on or off."""
-    if state not in ("on", "off"):
-        typer.echo("Error: state must be 'on' or 'off'", err=True)
-        raise typer.Exit(code=1)
-    result = run_termux_api("termux-torch", args=[state])
+    result = run_termux_api("termux-torch", args=[state.value])
     render(result, as_json=is_json_mode(ctx))
 
 
