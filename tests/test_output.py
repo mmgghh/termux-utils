@@ -58,3 +58,9 @@ def test_render_nonempty_string(capsys):
     render("hello from clipboard", as_json=False)
     captured = capsys.readouterr()
     assert captured.out == "hello from clipboard\n"
+
+
+def test_render_whitespace_only_string(capsys):
+    render("   ", as_json=False)
+    captured = capsys.readouterr()
+    assert captured.out == "(no output)\n"

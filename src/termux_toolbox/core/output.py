@@ -16,7 +16,7 @@ def render(data: dict | list | str, as_json: bool) -> None:
         return
 
     if isinstance(data, str):
-        typer.echo(data if data else "(no output)")
+        typer.echo(data if data.strip() else "(no output)")
     elif isinstance(data, dict):
         for key, value in data.items():
             typer.echo(f"{key}: {value}")
