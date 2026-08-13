@@ -4,9 +4,25 @@ version = "0.1.0"
 description = "A CLI toolbox exposing Termux:API device capabilities."
 readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "mohammad", email = "mmggwwoorrkk@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Utilities",
+]
 dependencies = [
     "typer>=0.12",
 ]
+
+[project.urls]
+Homepage = "https://github.com/mmgghh/termux-utils"
+Repository = "https://github.com/mmgghh/termux-utils"
 
 [project.optional-dependencies]
 dev = [
