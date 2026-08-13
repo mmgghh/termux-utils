@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from termux_toolbox.core.output import is_json_mode, render
@@ -24,10 +25,17 @@ def test_render_json_dict(capsys):
     assert captured.out.strip() == '{"percentage": 87}'
 
 
-def test_render_json_string_passthrough(capsys):
+def test_render_json_string_is_quoted(capsys):
     render("raw text", as_json=True)
     captured = capsys.readouterr()
-    assert captured.out.strip() == "raw text"
+    assert captured.out.strip() == '"raw text"'
+
+
+def test_render_json_string_with_embedded_quotes_is_valid_json(capsys):
+    render('he said "hi"', as_json=True)
+    captured = capsys.readouterr()
+    assert captured.out.strip() == json.dumps('he said "hi"')
+    assert json.loads(captured.out) == 'he said "hi"'
 
 
 def test_render_text_dict(capsys):
@@ -62,5 +70,17 @@ def test_render_nonempty_string(capsys):
 
 def test_render_whitespace_only_string(capsys):
     render("   ", as_json=False)
+    captured = capsys.readouterr()
+    assert captured.out == "(no output)\n"
+
+
+def test_render_empty_dict(capsys):
+    render({}, as_json=False)
+    captured = capsys.readouterr()
+    assert captured.out == "(no output)\n"
+
+
+def test_render_empty_list(capsys):
+    render([], as_json=False)
     captured = capsys.readouterr()
     assert captured.out == "(no output)\n"
