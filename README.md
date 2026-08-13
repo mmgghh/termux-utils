@@ -62,3 +62,7 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt torch on` then `mgt torch off` — flashlight actually toggles
 - [ ] `mgt wifi info` — prints real WiFi connection details
 - [ ] `mgt camera photo /sdcard/test.jpg` — prompts for camera permission on first run, then saves a real photo
+
+## License
+
+MIT — see [LICENSE](LICENSE).
