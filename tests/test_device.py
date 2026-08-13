@@ -16,7 +16,7 @@ def test_torch_on():
 
 def test_torch_rejects_invalid_state():
     result = runner.invoke(app, ["torch", "sideways"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "on" in result.output and "off" in result.output
 
 
@@ -65,3 +65,11 @@ def test_wifi_disable():
     with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
         runner.invoke(app, ["wifi", "disable"])
     mock_run.assert_called_once_with("termux-wifi-enable", args=["false"])
+
+
+def test_wifi_info_json_output():
+    fake = {"ssid": "MyNetwork"}
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value=fake):
+        result = runner.invoke(app, ["--json", "wifi", "info"])
+    assert result.exit_code == 0
+    assert result.output.strip() == '{"ssid": "MyNetwork"}'

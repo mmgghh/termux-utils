@@ -22,8 +22,11 @@ class PermissionDenied(TermuxToolboxError):
         self.command = command
         self.stderr = stderr
         super().__init__(
-            f"'{command}' was denied permission by Android. Grant it under "
-            "Android Settings > Apps > Termux:API > Permissions, then retry."
+            f"'{command}' was denied permission by Android. Grant it under Android "
+            "Settings > Apps > Termux:API > Permissions (for SMS/location/camera/"
+            "microphone/contacts), or under Android Settings > Apps > Special app "
+            "access (for system-level access like modifying display settings), "
+            "then retry."
         )
 
 
@@ -42,6 +45,6 @@ def handle_errors(func):
             return func(*args, **kwargs)
         except TermuxToolboxError as exc:
             typer.echo(f"Error: {exc}", err=True)
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from exc
 
     return wrapper
