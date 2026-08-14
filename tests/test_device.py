@@ -73,3 +73,47 @@ def test_wifi_info_json_output():
         result = runner.invoke(app, ["--json", "wifi", "info"])
     assert result.exit_code == 0
     assert result.output.strip() == '{"ssid": "MyNetwork"}'
+
+
+def test_audio_info():
+    fake = {"outputs": ["speaker"]}
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["audio-info"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-audio-info")
+
+
+def test_wallpaper_from_file():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["wallpaper", "--file", "/sdcard/pic.jpg"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-wallpaper", args=["-f", "/sdcard/pic.jpg"])
+
+
+def test_wallpaper_from_url_lockscreen():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["wallpaper", "--url", "https://example.com/a.jpg", "--lockscreen"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-wallpaper", args=["-u", "https://example.com/a.jpg", "-l", "true"]
+    )
+
+
+def test_wallpaper_rejects_neither_file_nor_url():
+    result = runner.invoke(app, ["wallpaper"])
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+
+
+def test_wallpaper_rejects_both_file_and_url():
+    result = runner.invoke(app, ["wallpaper", "--file", "a.jpg", "--url", "http://x"])
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+
+
+def test_wifi_scaninfo():
+    fake = [{"ssid": "MyNetwork", "level": -50}]
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["wifi", "scaninfo"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-wifi-scaninfo")

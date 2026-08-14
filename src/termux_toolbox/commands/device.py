@@ -49,6 +49,33 @@ def brightness(
     render(result, as_json=is_json_mode(ctx))
 
 
+@handle_errors
+def audio_info(ctx: typer.Context) -> None:
+    """Show audio capabilities and device info."""
+    result = run_termux_api("termux-audio-info")
+    render(result, as_json=is_json_mode(ctx))
+
+
+@handle_errors
+def wallpaper(
+    ctx: typer.Context,
+    file: str | None = typer.Option(None, "--file", help="Set wallpaper from a local file."),
+    url: str | None = typer.Option(None, "--url", help="Set wallpaper from a URL."),
+    lockscreen: bool = typer.Option(
+        False, "--lockscreen", help="Apply to the lockscreen (Android 7+)."
+    ),
+) -> None:
+    """Change the device wallpaper."""
+    if (file is None) == (url is None):
+        typer.echo("Error: provide exactly one of --file or --url.", err=True)
+        raise typer.Exit(code=1)
+    args = ["-f", file] if file is not None else ["-u", url]
+    if lockscreen:
+        args += ["-l", "true"]
+    result = run_termux_api("termux-wallpaper", args=args)
+    render(result, as_json=is_json_mode(ctx))
+
+
 @wifi_app.command("info")
 @handle_errors
 def wifi_info(ctx: typer.Context) -> None:
@@ -70,4 +97,12 @@ def wifi_enable(ctx: typer.Context) -> None:
 def wifi_disable(ctx: typer.Context) -> None:
     """Disable WiFi."""
     result = run_termux_api("termux-wifi-enable", args=["false"])
+    render(result, as_json=is_json_mode(ctx))
+
+
+@wifi_app.command("scaninfo")
+@handle_errors
+def wifi_scaninfo(ctx: typer.Context) -> None:
+    """Show results of the last WiFi scan."""
+    result = run_termux_api("termux-wifi-scaninfo")
     render(result, as_json=is_json_mode(ctx))
