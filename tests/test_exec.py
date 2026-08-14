@@ -4,10 +4,14 @@ from unittest.mock import patch
 import pytest
 
 from termux_toolbox.core.errors import CommandFailed, PermissionDenied, TermuxApiNotFound
-from termux_toolbox.core.exec import run_termux_api
+from termux_toolbox.core.exec import run_termux_api, run_termux_api_bytes
 
 
 def _completed(stdout="", stderr="", returncode=0):
+    return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr=stderr)
+
+
+def _completed_bytes(stdout=b"", stderr=b"", returncode=0):
     return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr=stderr)
 
 
@@ -73,4 +77,54 @@ def test_passes_args_and_input_data_through_to_subprocess():
         capture_output=True,
         text=True,
         timeout=15.0,
+    )
+
+
+def test_bytes_raises_termux_api_not_found_when_binary_missing():
+    with patch("termux_toolbox.core.exec.shutil.which", return_value=None):
+        with pytest.raises(TermuxApiNotFound):
+            run_termux_api_bytes("termux-saf-read")
+
+
+def test_bytes_returns_raw_bytes_on_success():
+    payload = b"\x89PNG\r\n\x1a\nbinary-data"
+    with patch("termux_toolbox.core.exec.shutil.which", return_value="/usr/bin/termux-saf-read"), \
+         patch("termux_toolbox.core.exec.subprocess.run", return_value=_completed_bytes(stdout=payload)):
+        result = run_termux_api_bytes("termux-saf-read", args=["content://uri"])
+    assert result == payload
+
+
+def test_bytes_raises_permission_denied_when_stderr_mentions_permission():
+    with patch("termux_toolbox.core.exec.shutil.which", return_value="/usr/bin/termux-saf-read"), \
+         patch("termux_toolbox.core.exec.subprocess.run",
+               return_value=_completed_bytes(stderr=b"Permission denied", returncode=1)):
+        with pytest.raises(PermissionDenied):
+            run_termux_api_bytes("termux-saf-read", args=["content://uri"])
+
+
+def test_bytes_raises_command_failed_on_other_nonzero_exit():
+    with patch("termux_toolbox.core.exec.shutil.which", return_value="/usr/bin/termux-saf-write"), \
+         patch("termux_toolbox.core.exec.subprocess.run",
+               return_value=_completed_bytes(stderr=b"bad uri", returncode=2)):
+        with pytest.raises(CommandFailed):
+            run_termux_api_bytes("termux-saf-write", args=["content://uri"], input_bytes=b"data")
+
+
+def test_bytes_raises_command_failed_on_timeout():
+    with patch("termux_toolbox.core.exec.shutil.which", return_value="/usr/bin/termux-saf-read"), \
+         patch("termux_toolbox.core.exec.subprocess.run",
+               side_effect=subprocess.TimeoutExpired(cmd="termux-saf-read", timeout=60.0)):
+        with pytest.raises(CommandFailed):
+            run_termux_api_bytes("termux-saf-read", args=["content://uri"], timeout=60.0)
+
+
+def test_bytes_passes_args_and_input_bytes_through_to_subprocess():
+    with patch("termux_toolbox.core.exec.shutil.which", return_value="/usr/bin/termux-saf-write"), \
+         patch("termux_toolbox.core.exec.subprocess.run", return_value=_completed_bytes()) as mock_run:
+        run_termux_api_bytes("termux-saf-write", args=["content://uri"], input_bytes=b"payload", timeout=60.0)
+    mock_run.assert_called_once_with(
+        ["termux-saf-write", "content://uri"],
+        input=b"payload",
+        capture_output=True,
+        timeout=60.0,
     )
