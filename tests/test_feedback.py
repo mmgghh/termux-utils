@@ -48,3 +48,72 @@ def test_speak():
     with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
         runner.invoke(app, ["speak", "hello world"])
     mock_run.assert_called_once_with("termux-tts-speak", args=["hello world"])
+
+
+def test_tts_engines():
+    fake = [{"name": "com.google.android.tts", "default": True}]
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["tts-engines"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-tts-engines")
+
+
+def test_speech_to_text_default():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="hello") as mock_run:
+        result = runner.invoke(app, ["speech-to-text"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-speech-to-text", args=[], timeout=60.0)
+
+
+def test_speech_to_text_progress():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="hello") as mock_run:
+        runner.invoke(app, ["speech-to-text", "--progress"])
+    mock_run.assert_called_once_with("termux-speech-to-text", args=["-p"], timeout=60.0)
+
+
+def test_download_url_only():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(app, ["download", "https://example.com/file.zip"])
+    mock_run.assert_called_once_with("termux-download", args=["https://example.com/file.zip"])
+
+
+def test_download_all_options():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(
+            app,
+            [
+                "download",
+                "https://example.com/file.zip",
+                "--description", "desc",
+                "--title", "title",
+                "--path", "/sdcard/file.zip",
+            ],
+        )
+    mock_run.assert_called_once_with(
+        "termux-download",
+        args=["-d", "desc", "-t", "title", "-p", "/sdcard/file.zip", "https://example.com/file.zip"],
+    )
+
+
+def test_share_file_default_action():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(app, ["share", "/sdcard/pic.jpg"])
+    mock_run.assert_called_once_with("termux-share", args=["-a", "view", "/sdcard/pic.jpg"])
+
+
+def test_share_stdin_with_options():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(
+            app,
+            [
+                "share",
+                "--action", "send",
+                "--content-type", "text/plain",
+                "--default-receiver",
+                "--title", "Note",
+            ],
+        )
+    mock_run.assert_called_once_with(
+        "termux-share",
+        args=["-a", "send", "-c", "text/plain", "-d", "-t", "Note"],
+    )
