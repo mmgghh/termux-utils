@@ -39,3 +39,31 @@ def test_contacts_list():
         result = runner.invoke(app, ["contacts", "list"])
     assert result.exit_code == 0
     assert "name=Bob" in result.output
+
+
+def test_call_log_defaults():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(app, ["call-log"])
+    mock_run.assert_called_once_with("termux-call-log", args=["-l", "10", "-o", "0"])
+
+
+def test_call_log_custom_limit_and_offset():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(app, ["call-log", "--limit", "5", "--offset", "2"])
+    mock_run.assert_called_once_with("termux-call-log", args=["-l", "5", "-o", "2"])
+
+
+def test_telephony_cellinfo():
+    fake = [{"type": "lte"}]
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["telephony", "cellinfo"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-telephony-cellinfo")
+
+
+def test_telephony_deviceinfo():
+    fake = {"network_operator": "Carrier"}
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["telephony", "deviceinfo"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-telephony-deviceinfo")

@@ -22,8 +22,10 @@ app.command("location")(sensors.location)
 app.add_typer(sensors.sensor_app, name="sensor")
 
 app.command("call")(messaging.call)
+app.command("call-log")(messaging.call_log)
 app.add_typer(messaging.sms_app, name="sms")
 app.add_typer(messaging.contacts_app, name="contacts")
+app.add_typer(messaging.telephony_app, name="telephony")
 
 app.command("notify")(feedback.notify)
 app.command("toast")(feedback.toast)

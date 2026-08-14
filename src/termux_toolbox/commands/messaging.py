@@ -41,9 +41,39 @@ def call(
     render(result, as_json=is_json_mode(ctx))
 
 
+@handle_errors
+def call_log(
+    ctx: typer.Context,
+    limit: int = typer.Option(10, "--limit", help="Maximum number of call log entries to list."),
+    offset: int = typer.Option(0, "--offset", help="Offset into the call log."),
+) -> None:
+    """List call log history."""
+    result = run_termux_api("termux-call-log", args=["-l", str(limit), "-o", str(offset)])
+    render(result, as_json=is_json_mode(ctx))
+
+
 @contacts_app.command("list")
 @handle_errors
 def contacts_list(ctx: typer.Context) -> None:
     """List device contacts."""
     result = run_termux_api("termux-contact-list")
+    render(result, as_json=is_json_mode(ctx))
+
+
+telephony_app = typer.Typer(help="Query telephony/cellular information.")
+
+
+@telephony_app.command("cellinfo")
+@handle_errors
+def telephony_cellinfo(ctx: typer.Context) -> None:
+    """Show observed cell tower information."""
+    result = run_termux_api("termux-telephony-cellinfo")
+    render(result, as_json=is_json_mode(ctx))
+
+
+@telephony_app.command("deviceinfo")
+@handle_errors
+def telephony_deviceinfo(ctx: typer.Context) -> None:
+    """Show telephony device information."""
+    result = run_termux_api("termux-telephony-deviceinfo")
     render(result, as_json=is_json_mode(ctx))
