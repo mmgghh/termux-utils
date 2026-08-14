@@ -19,6 +19,8 @@ def main(
 
 app.command("battery")(sensors.battery)
 app.command("location")(sensors.location)
+app.command("fingerprint")(sensors.fingerprint)
+app.add_typer(sensors.infrared_app, name="infrared")
 app.add_typer(sensors.sensor_app, name="sensor")
 
 app.command("call")(messaging.call)

@@ -75,3 +75,47 @@ def test_sensor_read_timeout_scales_with_delay_and_limit():
     mock_run.assert_called_once_with(
         "termux-sensor", args=["-s", "Accelerometer", "-d", "10000", "-n", "5"], timeout=55.0
     )
+
+
+def test_fingerprint_no_options():
+    fake = {"auth_result": "AUTH_RESULT_SUCCESS"}
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["fingerprint"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-fingerprint", args=[], timeout=30.0)
+
+
+def test_fingerprint_all_options():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
+        runner.invoke(
+            app,
+            [
+                "fingerprint",
+                "--title", "Confirm",
+                "--description", "Please scan",
+                "--subtitle", "Sub",
+                "--cancel", "Nope",
+            ],
+        )
+    mock_run.assert_called_once_with(
+        "termux-fingerprint",
+        args=["-t", "Confirm", "-d", "Please scan", "-s", "Sub", "-c", "Nope"],
+        timeout=30.0,
+    )
+
+
+def test_infrared_frequencies():
+    fake = [30000, 33000, 36000, 38000, 40000, 56000]
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["infrared", "frequencies"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-infrared-frequencies")
+
+
+def test_infrared_transmit():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["infrared", "transmit", "20,50,20,30", "--frequency", "38000"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-infrared-transmit", args=["-f", "38000", "20,50,20,30"]
+    )

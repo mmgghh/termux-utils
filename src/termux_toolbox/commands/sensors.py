@@ -57,3 +57,50 @@ def sensor_read(
     timeout = max(15.0, (delay_ms * limit) / 1000 + 5)
     result = run_termux_api("termux-sensor", args=args, timeout=timeout)
     render(result, as_json=is_json_mode(ctx))
+
+
+@handle_errors
+def fingerprint(
+    ctx: typer.Context,
+    title: str | None = typer.Option(None, "--title", help="Dialog title."),
+    description: str | None = typer.Option(None, "--description", help="Dialog description."),
+    subtitle: str | None = typer.Option(None, "--subtitle", help="Dialog subtitle."),
+    cancel: str | None = typer.Option(None, "--cancel", help="Cancel button text."),
+) -> None:
+    """Authenticate using the device fingerprint sensor."""
+    args = []
+    if title is not None:
+        args += ["-t", title]
+    if description is not None:
+        args += ["-d", description]
+    if subtitle is not None:
+        args += ["-s", subtitle]
+    if cancel is not None:
+        args += ["-c", cancel]
+    result = run_termux_api("termux-fingerprint", args=args, timeout=30.0)
+    render(result, as_json=is_json_mode(ctx))
+
+
+infrared_app = typer.Typer(help="Use the device's infrared transmitter.")
+
+
+@infrared_app.command("frequencies")
+@handle_errors
+def infrared_frequencies(ctx: typer.Context) -> None:
+    """List the infrared transmitter's supported carrier frequencies."""
+    result = run_termux_api("termux-infrared-frequencies")
+    render(result, as_json=is_json_mode(ctx))
+
+
+@infrared_app.command("transmit")
+@handle_errors
+def infrared_transmit(
+    ctx: typer.Context,
+    pattern: str = typer.Argument(
+        ..., help="Comma-separated on/off intervals, e.g. '20,50,20,30'."
+    ),
+    frequency: int = typer.Option(..., "--frequency", "-f", help="IR carrier frequency in Hertz."),
+) -> None:
+    """Transmit an infrared pattern."""
+    result = run_termux_api("termux-infrared-transmit", args=["-f", str(frequency), pattern])
+    render(result, as_json=is_json_mode(ctx))
