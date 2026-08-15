@@ -95,7 +95,7 @@ def test_wallpaper_from_url_lockscreen():
         result = runner.invoke(app, ["wallpaper", "--url", "https://example.com/a.jpg", "--lockscreen"])
     assert result.exit_code == 0
     mock_run.assert_called_once_with(
-        "termux-wallpaper", args=["-u", "https://example.com/a.jpg", "-l", "true"]
+        "termux-wallpaper", args=["-u", "https://example.com/a.jpg", "-l"]
     )
 
 

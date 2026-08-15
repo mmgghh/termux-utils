@@ -73,6 +73,7 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt camera photo /sdcard/test.jpg` — prompts for camera permission on first run, then saves a real photo
 - [ ] `mgt fingerprint` — prompts the fingerprint sensor and reports the auth result
 - [ ] `mgt wallpaper --file /sdcard/pic.jpg` — home screen wallpaper actually changes
+- [ ] `mgt wallpaper --file /sdcard/pic.jpg --lockscreen` — lockscreen wallpaper actually changes (regression check for the -l flag fix)
 - [ ] `mgt saf managedir` then `mgt saf dirs` — grants folder access via the system picker, then lists it
 - [ ] `mgt saf ls <uri>` then `mgt saf read <uri-of-a-file> > /tmp/out` — round-trips a real file's bytes
 - [ ] `mgt download "https://example.com/file.zip"` — a real download starts, visible in the notification shade

@@ -71,7 +71,7 @@ def wallpaper(
         raise typer.Exit(code=1)
     args = ["-f", file] if file is not None else ["-u", url]
     if lockscreen:
-        args += ["-l", "true"]
+        args.append("-l")
     result = run_termux_api("termux-wallpaper", args=args)
     render(result, as_json=is_json_mode(ctx))
 
