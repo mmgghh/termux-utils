@@ -67,3 +67,29 @@ def test_saf_stat():
         result = runner.invoke(app, ["saf", "stat", "content://doc/1"])
     assert result.exit_code == 0
     mock_run.assert_called_once_with("termux-saf-stat", args=["content://doc/1"])
+
+
+def test_saf_read_writes_raw_bytes_to_stdout():
+    payload = b"\x89PNG\r\n\x1a\nbinary-image-data"
+    with patch("termux_toolbox.commands.storage.run_termux_api_bytes", return_value=payload) as mock_run:
+        result = runner.invoke(app, ["saf", "read", "content://doc/1"])
+    assert result.exit_code == 0
+    assert result.stdout_bytes == payload
+    mock_run.assert_called_once_with("termux-saf-read", args=["content://doc/1"], timeout=60.0)
+
+
+def test_saf_write_reads_raw_bytes_from_stdin():
+    payload = b"\x89PNG\r\n\x1a\nbinary-image-data"
+    with patch("termux_toolbox.commands.storage.run_termux_api_bytes", return_value=b"") as mock_run:
+        result = runner.invoke(app, ["saf", "write", "content://doc/1"], input=payload)
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-saf-write", args=["content://doc/1"], input_bytes=payload, timeout=60.0
+    )
+
+
+def test_saf_rm():
+    with patch("termux_toolbox.commands.storage.run_termux_api", return_value=0) as mock_run:
+        result = runner.invoke(app, ["saf", "rm", "content://doc/1"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-saf-rm", args=["content://doc/1"])

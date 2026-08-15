@@ -1,7 +1,9 @@
+import sys
+
 import typer
 
 from termux_toolbox.core.errors import handle_errors
-from termux_toolbox.core.exec import run_termux_api
+from termux_toolbox.core.exec import run_termux_api, run_termux_api_bytes
 from termux_toolbox.core.output import is_json_mode, render
 
 saf_app = typer.Typer(help="Access files and folders via the Storage Access Framework.")
@@ -83,4 +85,37 @@ def saf_stat(
 ) -> None:
     """Show info about a file or folder identified by a SAF URI."""
     result = run_termux_api("termux-saf-stat", args=[uri])
+    render(result, as_json=is_json_mode(ctx))
+
+
+@saf_app.command("read")
+@handle_errors
+def saf_read(
+    ctx: typer.Context,
+    uri: str = typer.Argument(..., help="URI of the file to read."),
+) -> None:
+    """Read a file's contents from a SAF URI and print raw bytes to stdout."""
+    data = run_termux_api_bytes("termux-saf-read", args=[uri], timeout=60.0)
+    sys.stdout.buffer.write(data)
+
+
+@saf_app.command("write")
+@handle_errors
+def saf_write(
+    ctx: typer.Context,
+    uri: str = typer.Argument(..., help="URI of the file to write to."),
+) -> None:
+    """Write stdin to an existing file identified by a SAF URI."""
+    data = sys.stdin.buffer.read()
+    run_termux_api_bytes("termux-saf-write", args=[uri], input_bytes=data, timeout=60.0)
+
+
+@saf_app.command("rm")
+@handle_errors
+def saf_rm(
+    ctx: typer.Context,
+    uri: str = typer.Argument(..., help="URI of the file or folder to remove."),
+) -> None:
+    """Remove the file or folder at a SAF URI."""
+    result = run_termux_api("termux-saf-rm", args=[uri])
     render(result, as_json=is_json_mode(ctx))
