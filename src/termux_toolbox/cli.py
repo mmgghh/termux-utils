@@ -38,6 +38,7 @@ app.command("speech-to-text")(feedback.speech_to_text)
 app.command("download")(feedback.download)
 app.command("share")(feedback.share)
 app.add_typer(feedback.clipboard_app, name="clipboard")
+app.add_typer(feedback.notification_app, name="notification")
 
 app.add_typer(media.camera_app, name="camera")
 app.add_typer(media.media_app, name="media")

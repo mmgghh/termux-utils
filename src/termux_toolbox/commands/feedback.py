@@ -144,3 +144,50 @@ def share(
         args.append(file)
     result = run_termux_api("termux-share", args=args)
     render(result, as_json=is_json_mode(ctx))
+
+
+notification_app = typer.Typer(help="Manage notifications posted via 'mgt notify'.")
+notification_channel_app = typer.Typer(help="Create or delete notification channels.")
+notification_app.add_typer(notification_channel_app, name="channel")
+
+
+@notification_app.command("list")
+@handle_errors
+def notification_list(ctx: typer.Context) -> None:
+    """List currently shown notifications."""
+    result = run_termux_api("termux-notification-list")
+    render(result, as_json=is_json_mode(ctx))
+
+
+@notification_app.command("remove")
+@handle_errors
+def notification_remove(
+    ctx: typer.Context,
+    notification_id: str = typer.Argument(..., help="ID of the notification to remove."),
+) -> None:
+    """Remove a previously shown notification by ID (see 'mgt notification list')."""
+    result = run_termux_api("termux-notification-remove", args=[notification_id])
+    render(result, as_json=is_json_mode(ctx))
+
+
+@notification_channel_app.command("create")
+@handle_errors
+def notification_channel_create(
+    ctx: typer.Context,
+    channel_id: str = typer.Argument(..., help="Channel ID."),
+    channel_name: str = typer.Argument(..., help="Channel display name."),
+) -> None:
+    """Create a notification channel, or rename an existing one."""
+    result = run_termux_api("termux-notification-channel", args=[channel_id, channel_name])
+    render(result, as_json=is_json_mode(ctx))
+
+
+@notification_channel_app.command("delete")
+@handle_errors
+def notification_channel_delete(
+    ctx: typer.Context,
+    channel_id: str = typer.Argument(..., help="ID of the channel to delete."),
+) -> None:
+    """Delete a notification channel."""
+    result = run_termux_api("termux-notification-channel", args=["-d", channel_id])
+    render(result, as_json=is_json_mode(ctx))

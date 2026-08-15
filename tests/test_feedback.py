@@ -117,3 +117,29 @@ def test_share_stdin_with_options():
         "termux-share",
         args=["-a", "send", "-c", "text/plain", "-d", "-t", "Note"],
     )
+
+
+def test_notification_list():
+    fake = [{"id": "1", "title": "Test"}]
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value=fake) as mock_run:
+        result = runner.invoke(app, ["notification", "list"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-notification-list")
+
+
+def test_notification_remove():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(app, ["notification", "remove", "42"])
+    mock_run.assert_called_once_with("termux-notification-remove", args=["42"])
+
+
+def test_notification_channel_create():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(app, ["notification", "channel", "create", "updates", "Updates"])
+    mock_run.assert_called_once_with("termux-notification-channel", args=["updates", "Updates"])
+
+
+def test_notification_channel_delete():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        runner.invoke(app, ["notification", "channel", "delete", "updates"])
+    mock_run.assert_called_once_with("termux-notification-channel", args=["-d", "updates"])
