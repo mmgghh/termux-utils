@@ -11,9 +11,9 @@ media_app = typer.Typer(help="Control on-device media playback.")
 mic_app = typer.Typer(help="Record audio with the device microphone.")
 
 
-class Camera(str, Enum):
-    front = "front"
-    back = "back"
+# Convenience aliases for the two IDs Android assigns by convention; any other ID
+# from 'mgt camera info' can be passed through directly.
+CAMERA_ALIASES = {"back": "0", "front": "1"}
 
 
 @camera_app.command("photo")
@@ -21,10 +21,12 @@ class Camera(str, Enum):
 def camera_photo(
     ctx: typer.Context,
     output_path: str = typer.Argument(..., help="File path to save the photo to."),
-    camera: Camera = typer.Option(Camera.back, "--camera", help="'front' or 'back'."),
+    camera: str = typer.Option(
+        "back", "--camera", "-c", help="'front', 'back', or a camera ID from 'mgt camera info'."
+    ),
 ) -> None:
     """Take a photo."""
-    camera_id = "0" if camera == Camera.back else "1"
+    camera_id = CAMERA_ALIASES.get(camera, camera)
     result = run_termux_api("termux-camera-photo", args=["-c", camera_id, output_path])
     render(result, as_json=is_json_mode(ctx))
 
@@ -94,15 +96,56 @@ def media_scan(
     render(result, as_json=is_json_mode(ctx))
 
 
+class MicEncoder(str, Enum):
+    aac = "aac"
+    amr_wb = "amr_wb"
+    amr_nb = "amr_nb"
+    opus = "opus"
+
+
 @mic_app.command("record")
 @handle_errors
 def mic_record(
     ctx: typer.Context,
-    output_path: str = typer.Argument(..., help="File path to save the recording to."),
-    duration_s: int = typer.Option(10, "--duration", help="Recording length in seconds."),
+    output_path: str | None = typer.Argument(
+        None, help="File path to save the recording to. Omit to record with device defaults."
+    ),
+    duration_s: int = typer.Option(
+        10, "--duration", help="Recording length in seconds; 0 records until stopped."
+    ),
+    encoder: MicEncoder | None = typer.Option(None, "--encoder", help="Recording encoder."),
+    bitrate: int | None = typer.Option(None, "--bitrate", help="Recording bitrate in kbps."),
+    sample_rate: int | None = typer.Option(
+        None, "--sample-rate", help="Recording sampling rate in Hz."
+    ),
+    channels: int | None = typer.Option(None, "--channels", help="Channel count, e.g. 1 or 2."),
 ) -> None:
-    """Record audio from the microphone."""
-    result = run_termux_api(
-        "termux-microphone-record", args=["-f", output_path, "-l", str(duration_s)]
-    )
+    """Start recording audio from the microphone."""
+    args = ["-f", output_path] if output_path is not None else ["-d"]
+    args += ["-l", str(duration_s)]
+    if encoder is not None:
+        args += ["-e", encoder.value]
+    if bitrate is not None:
+        args += ["-b", str(bitrate)]
+    if sample_rate is not None:
+        args += ["-r", str(sample_rate)]
+    if channels is not None:
+        args += ["-c", str(channels)]
+    result = run_termux_api("termux-microphone-record", args=args)
+    render(result, as_json=is_json_mode(ctx))
+
+
+@mic_app.command("info")
+@handle_errors
+def mic_info(ctx: typer.Context) -> None:
+    """Show information about the current recording."""
+    result = run_termux_api("termux-microphone-record", args=["-i"])
+    render(result, as_json=is_json_mode(ctx))
+
+
+@mic_app.command("stop")
+@handle_errors
+def mic_stop(ctx: typer.Context) -> None:
+    """Stop the current recording."""
+    result = run_termux_api("termux-microphone-record", args=["-q"])
     render(result, as_json=is_json_mode(ctx))

@@ -15,6 +15,12 @@ class LocationProvider(str, Enum):
     passive = "passive"
 
 
+class LocationRequest(str, Enum):
+    once = "once"
+    last = "last"
+    updates = "updates"
+
+
 @handle_errors
 def battery(ctx: typer.Context) -> None:
     """Show battery status."""
@@ -28,10 +34,15 @@ def location(
     provider: LocationProvider = typer.Option(
         LocationProvider.gps, "--provider", help="gps, network, or passive."
     ),
+    request: LocationRequest = typer.Option(
+        LocationRequest.once,
+        "--request",
+        help="once (wait for a fix), last (last known), or updates (stream).",
+    ),
 ) -> None:
     """Show current device location."""
     result = run_termux_api(
-        "termux-location", args=["-p", provider.value, "-r", "once"], timeout=60.0
+        "termux-location", args=["-p", provider.value, "-r", request.value], timeout=60.0
     )
     render(result, as_json=is_json_mode(ctx))
 
@@ -48,14 +59,38 @@ def sensor_list(ctx: typer.Context) -> None:
 @handle_errors
 def sensor_read(
     ctx: typer.Context,
-    sensor_name: str = typer.Argument(..., help="Exact sensor name, as shown by 'mgt sensor list'."),
+    sensor_names: list[str] = typer.Argument(
+        ..., help="Sensor name(s), as shown by 'mgt sensor list'. Partial names match."
+    ),
     delay_ms: int = typer.Option(1000, "--delay-ms", help="Delay between readings, in milliseconds."),
     limit: int = typer.Option(1, "--limit", help="Number of readings to take."),
 ) -> None:
-    """Read values from a specific sensor."""
-    args = ["-s", sensor_name, "-d", str(delay_ms), "-n", str(limit)]
+    """Read values from specific sensor(s)."""
+    args = ["-s", ",".join(sensor_names), "-d", str(delay_ms), "-n", str(limit)]
     timeout = max(15.0, (delay_ms * limit) / 1000 + 5)
     result = run_termux_api("termux-sensor", args=args, timeout=timeout)
+    render(result, as_json=is_json_mode(ctx))
+
+
+@sensor_app.command("all")
+@handle_errors
+def sensor_all(
+    ctx: typer.Context,
+    delay_ms: int = typer.Option(1000, "--delay-ms", help="Delay between readings, in milliseconds."),
+    limit: int = typer.Option(1, "--limit", help="Number of readings to take."),
+) -> None:
+    """Read values from every sensor at once (may have a battery impact)."""
+    args = ["-a", "-d", str(delay_ms), "-n", str(limit)]
+    timeout = max(15.0, (delay_ms * limit) / 1000 + 5)
+    result = run_termux_api("termux-sensor", args=args, timeout=timeout)
+    render(result, as_json=is_json_mode(ctx))
+
+
+@sensor_app.command("cleanup")
+@handle_errors
+def sensor_cleanup(ctx: typer.Context) -> None:
+    """Release sensor resources held by a previous read."""
+    result = run_termux_api("termux-sensor", args=["-c"])
     render(result, as_json=is_json_mode(ctx))
 
 

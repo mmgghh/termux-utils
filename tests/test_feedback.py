@@ -143,3 +143,229 @@ def test_notification_channel_delete():
     with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
         runner.invoke(app, ["notification", "channel", "delete", "updates"])
     mock_run.assert_called_once_with("termux-notification-channel", args=["-d", "updates"])
+
+
+def test_notify_full_options():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "notify",
+                "Title",
+                "Body",
+                "--id",
+                "job1",
+                "--channel",
+                "jobs",
+                "--group",
+                "batch",
+                "--priority",
+                "high",
+                "--icon",
+                "event_note",
+                "--image-path",
+                "/sdcard/a.png",
+                "--led-color",
+                "FF0000",
+                "--led-on",
+                "500",
+                "--led-off",
+                "300",
+                "--vibrate",
+                "500,1000",
+                "--sound",
+                "--ongoing",
+                "--alert-once",
+            ],
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-notification",
+        args=[
+            "-t",
+            "Title",
+            "-c",
+            "Body",
+            "--id",
+            "job1",
+            "--channel",
+            "jobs",
+            "--group",
+            "batch",
+            "--priority",
+            "high",
+            "--icon",
+            "event_note",
+            "--image-path",
+            "/sdcard/a.png",
+            "--led-color",
+            "FF0000",
+            "--led-on",
+            "500",
+            "--led-off",
+            "300",
+            "--vibrate",
+            "500,1000",
+            "--sound",
+            "--ongoing",
+            "--alert-once",
+        ],
+    )
+
+
+def test_notify_actions_and_buttons():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "notify",
+                "Title",
+                "Body",
+                "--action",
+                "termux-toast hi",
+                "--on-delete",
+                "termux-toast bye",
+                "--button1",
+                "Yes",
+                "--button1-action",
+                "termux-toast yes",
+                "--button2",
+                "No",
+                "--button2-action",
+                "termux-toast no",
+                "--button3",
+                "Maybe",
+                "--button3-action",
+                "termux-toast maybe",
+            ],
+        )
+    assert result.exit_code == 0
+    args = mock_run.call_args.kwargs["args"]
+    assert args[args.index("--action") + 1] == "termux-toast hi"
+    assert args[args.index("--on-delete") + 1] == "termux-toast bye"
+    assert args[args.index("--button1") + 1] == "Yes"
+    assert args[args.index("--button1-action") + 1] == "termux-toast yes"
+    assert args[args.index("--button2") + 1] == "No"
+    assert args[args.index("--button2-action") + 1] == "termux-toast no"
+    assert args[args.index("--button3") + 1] == "Maybe"
+    assert args[args.index("--button3-action") + 1] == "termux-toast maybe"
+
+
+def test_notify_media_type_and_media_actions():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "notify",
+                "Now playing",
+                "Song",
+                "--type",
+                "media",
+                "--media-play",
+                "mgt media play",
+                "--media-pause",
+                "mgt media pause",
+                "--media-next",
+                "next.sh",
+                "--media-previous",
+                "prev.sh",
+            ],
+        )
+    assert result.exit_code == 0
+    args = mock_run.call_args.kwargs["args"]
+    assert args[args.index("--type") + 1] == "media"
+    assert args[args.index("--media-play") + 1] == "mgt media play"
+    assert args[args.index("--media-pause") + 1] == "mgt media pause"
+    assert args[args.index("--media-next") + 1] == "next.sh"
+    assert args[args.index("--media-previous") + 1] == "prev.sh"
+
+
+def test_notify_ongoing_without_id_errors():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["notify", "Title", "Body", "--ongoing"])
+    assert result.exit_code == 1
+    assert "--id" in result.output
+    mock_run.assert_not_called()
+
+
+def test_notify_content_optional_reads_stdin():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["notify", "Title"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-notification", args=["-t", "Title"])
+
+
+def test_toast_styling_options():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "toast",
+                "hello",
+                "--short",
+                "--background",
+                "red",
+                "--text-color",
+                "white",
+                "--gravity",
+                "top",
+            ],
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-toast",
+        args=["-s", "-b", "red", "-c", "white", "-g", "top", "hello"],
+    )
+
+
+def test_vibrate_force():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["vibrate", "--duration-ms", "200", "--force"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-vibrate", args=["-d", "200", "-f"])
+
+
+def test_speak_voice_options():
+    with patch("termux_toolbox.commands.feedback.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "speak",
+                "hello",
+                "--engine",
+                "com.google.android.tts",
+                "--language",
+                "eng",
+                "--region",
+                "GBR",
+                "--variant",
+                "female",
+                "--pitch",
+                "1.2",
+                "--rate",
+                "0.8",
+                "--stream",
+                "MUSIC",
+            ],
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-tts-speak",
+        args=[
+            "-e",
+            "com.google.android.tts",
+            "-l",
+            "eng",
+            "-n",
+            "GBR",
+            "-v",
+            "female",
+            "-p",
+            "1.2",
+            "-r",
+            "0.8",
+            "-s",
+            "MUSIC",
+            "hello",
+        ],
+    )

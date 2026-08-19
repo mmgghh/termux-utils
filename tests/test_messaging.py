@@ -67,3 +67,129 @@ def test_telephony_deviceinfo():
         result = runner.invoke(app, ["telephony", "deviceinfo"])
     assert result.exit_code == 0
     mock_run.assert_called_once_with("termux-telephony-deviceinfo")
+
+
+def test_sms_list_offset_and_type():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(app, ["sms", "list", "--offset", "20", "--type", "inbox"])
+    mock_run.assert_called_once_with(
+        "termux-sms-list", args=["-l", "10", "-o", "20", "-t", "inbox"]
+    )
+
+
+def test_sms_list_address_and_selection():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(
+            app,
+            ["sms", "list", "--from", "666", "--selection", "body LIKE 'Foo %'"],
+        )
+    mock_run.assert_called_once_with(
+        "termux-sms-list",
+        args=["-l", "10", "-f", "666", "--message-selection=body LIKE 'Foo %'"],
+    )
+
+
+def test_sms_list_sort_order_and_no_order_reverse():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(
+            app,
+            ["sms", "list", "--sort-order", "date ASC", "--no-order-reverse"],
+        )
+    mock_run.assert_called_once_with(
+        "termux-sms-list",
+        args=[
+            "-l",
+            "10",
+            "--message-sort-order=date ASC",
+            "--message-return-no-order-reverse",
+        ],
+    )
+
+
+def test_sms_list_conversations_nested():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(
+            app,
+            [
+                "sms",
+                "list",
+                "--conversations",
+                "--conversation-multiple-messages",
+                "--conversation-nested",
+                "--conversation-limit",
+                "1",
+                "--limit",
+                "5",
+            ],
+        )
+    mock_run.assert_called_once_with(
+        "termux-sms-list",
+        args=[
+            "-l",
+            "5",
+            "-c",
+            "--conversation-limit=1",
+            "--conversation-return-multiple-messages",
+            "--conversation-return-nested-view",
+        ],
+    )
+
+
+def test_sms_list_conversation_selection_and_offset():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(
+            app,
+            [
+                "sms",
+                "list",
+                "--conversations",
+                "--conversation-offset",
+                "2",
+                "--conversation-selection",
+                "thread_id == 6",
+            ],
+        )
+    mock_run.assert_called_once_with(
+        "termux-sms-list",
+        args=[
+            "-l",
+            "10",
+            "-c",
+            "--conversation-offset=2",
+            "--conversation-selection=thread_id == 6",
+        ],
+    )
+
+
+def test_sms_list_conversation_no_order_reverse_sends_explicit_sort_order():
+    # Upstream only forwards --conversation-return-no-order-reverse when a
+    # conversation sort order is also set, so send the documented default.
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        runner.invoke(app, ["sms", "list", "--conversations", "--conversation-no-order-reverse"])
+    mock_run.assert_called_once_with(
+        "termux-sms-list",
+        args=[
+            "-l",
+            "10",
+            "-c",
+            "--conversation-sort-order=date DESC",
+            "--conversation-return-no-order-reverse",
+        ],
+    )
+
+
+def test_sms_list_conversation_option_without_conversations_errors():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value=[]) as mock_run:
+        result = runner.invoke(app, ["sms", "list", "--conversation-limit", "1"])
+    assert result.exit_code == 1
+    assert "--conversations" in result.output
+    mock_run.assert_not_called()
+
+
+def test_sms_send_with_slot_and_multiple_numbers():
+    with patch("termux_toolbox.commands.messaging.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["sms", "send", "555,666", "hi", "--slot", "1"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-sms-send", args=["-n", "555,666", "-s", "1", "hi"]
+    )

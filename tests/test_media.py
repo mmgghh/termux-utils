@@ -92,3 +92,73 @@ def test_media_scan_recursive_verbose_multiple_files():
     mock_run.assert_called_once_with(
         "termux-media-scan", args=["-r", "-v", "/sdcard/dir1", "/sdcard/dir2"], timeout=30.0
     )
+
+
+def test_camera_photo_accepts_raw_camera_id():
+    with patch("termux_toolbox.commands.media.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["camera", "photo", "/sdcard/a.jpg", "--camera", "2"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-camera-photo", args=["-c", "2", "/sdcard/a.jpg"]
+    )
+
+
+def test_mic_record_encoding_options():
+    with patch("termux_toolbox.commands.media.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            [
+                "mic",
+                "record",
+                "/sdcard/a.m4a",
+                "--duration",
+                "0",
+                "--encoder",
+                "opus",
+                "--bitrate",
+                "128",
+                "--sample-rate",
+                "44100",
+                "--channels",
+                "2",
+            ],
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-microphone-record",
+        args=[
+            "-f",
+            "/sdcard/a.m4a",
+            "-l",
+            "0",
+            "-e",
+            "opus",
+            "-b",
+            "128",
+            "-r",
+            "44100",
+            "-c",
+            "2",
+        ],
+    )
+
+
+def test_mic_record_without_path_uses_defaults():
+    with patch("termux_toolbox.commands.media.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["mic", "record"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-microphone-record", args=["-d", "-l", "10"])
+
+
+def test_mic_info():
+    with patch("termux_toolbox.commands.media.run_termux_api", return_value={}) as mock_run:
+        result = runner.invoke(app, ["mic", "info"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-microphone-record", args=["-i"])
+
+
+def test_mic_stop():
+    with patch("termux_toolbox.commands.media.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["mic", "stop"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-microphone-record", args=["-q"])

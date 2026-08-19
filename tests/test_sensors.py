@@ -119,3 +119,32 @@ def test_infrared_transmit():
     mock_run.assert_called_once_with(
         "termux-infrared-transmit", args=["-f", "38000", "20,50,20,30"]
     )
+
+
+def test_location_request_kind():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
+        runner.invoke(app, ["location", "--request", "last"])
+    mock_run.assert_called_once_with(
+        "termux-location", args=["-p", "gps", "-r", "last"], timeout=60.0
+    )
+
+
+def test_sensor_read_multiple_sensors():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
+        runner.invoke(app, ["sensor", "read", "Accelerometer", "Gyroscope"])
+    args = mock_run.call_args.kwargs["args"]
+    assert args[:2] == ["-s", "Accelerometer,Gyroscope"]
+
+
+def test_sensor_all():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value={}) as mock_run:
+        runner.invoke(app, ["sensor", "all", "--delay-ms", "500", "--limit", "2"])
+    args = mock_run.call_args.kwargs["args"]
+    assert args == ["-a", "-d", "500", "-n", "2"]
+
+
+def test_sensor_cleanup():
+    with patch("termux_toolbox.commands.sensors.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["sensor", "cleanup"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-sensor", args=["-c"])

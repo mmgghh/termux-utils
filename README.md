@@ -24,14 +24,22 @@ mgt --help
 mgt battery
 mgt --json battery | jq .percentage
 mgt sms list --limit 5
-mgt sms send 5551234 "hello"
+mgt sms list --type inbox --from 5551234
+mgt sms list --selection "type == 1 and body LIKE 'Foo %'" --limit 1
+mgt sms list --conversations --conversation-multiple-messages --conversation-nested
+mgt sms send 5551234,5555678 "hello" --slot 1
 mgt call-log --limit 5
-mgt location --provider network
+mgt location --provider network --request last
 mgt sensor list
-mgt sensor read Accelerometer --delay-ms 500 --limit 3
+mgt sensor read Accelerometer Gyroscope --delay-ms 500 --limit 3
+mgt sensor all --limit 1
+mgt sensor cleanup
 mgt clipboard get
 mgt clipboard set "copied text"
 mgt notify "Title" "Body text"
+mgt notify "Build" "Deploy?" --id build --button1 Ship --button1-action "deploy.sh"
+mgt toast "saved" --short --gravity top --background "#FF333333"
+mgt speak "hello" --pitch 1.2 --rate 0.9 --stream MUSIC
 mgt notification list
 mgt torch on
 mgt wifi info
@@ -39,6 +47,9 @@ mgt wifi scaninfo
 mgt camera info
 mgt media play /sdcard/song.mp3
 mgt media pause
+mgt mic record /sdcard/memo.m4a --duration 0 --encoder opus
+mgt mic info
+mgt mic stop
 mgt share /sdcard/photo.jpg --action send
 mgt saf dirs
 mgt saf ls content://tree/primary%3ADownload
@@ -65,6 +76,10 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt location --provider gps` — prompts for location permission on first run, then prints coordinates
 - [ ] `mgt sensor list` — lists real device sensors
 - [ ] `mgt sms list --limit 3` — prompts for SMS permission on first run, then lists real messages
+- [ ] `mgt sms list --conversations --conversation-nested --conversation-multiple-messages` — returns nested conversations
+- [ ] `mgt sms list --type inbox --limit 1 --no-order-reverse` — filters by type and prints newest first
+- [ ] `mgt sensor all --limit 1` then `mgt sensor cleanup` — reads every sensor once, then releases them
+- [ ] `mgt mic record /sdcard/memo.m4a --duration 0` then `mgt mic info` then `mgt mic stop` — records, reports, and stops
 - [ ] `mgt contacts list` — prompts for contacts permission on first run, then lists real contacts
 - [ ] `mgt clipboard set "test"` then `mgt clipboard get` — round-trips correctly
 - [ ] `mgt notify "Test" "Body"` — a real Android notification appears
