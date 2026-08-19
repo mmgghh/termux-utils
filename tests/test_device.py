@@ -117,3 +117,72 @@ def test_wifi_scaninfo():
         result = runner.invoke(app, ["wifi", "scaninfo"])
     assert result.exit_code == 0
     mock_run.assert_called_once_with("termux-wifi-scaninfo")
+
+
+def test_usb_list():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value=[]) as mock_run:
+        result = runner.invoke(app, ["usb", "list"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-usb", args=["-l"])
+
+
+def test_usb_permission_with_device_path():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["usb", "permission", "/dev/bus/usb/001/002", "--request"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-usb", args=["-r", "/dev/bus/usb/001/002"], timeout=120.0
+    )
+
+
+def test_usb_permission_with_vendor_and_product_id():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app, ["usb", "permission", "--vendor-id", "1234", "--product-id", "5678"]
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-usb", args=["1234", "5678"], timeout=120.0)
+
+
+def test_usb_permission_without_device_errors():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(app, ["usb", "permission"])
+    assert result.exit_code == 1
+    mock_run.assert_not_called()
+
+
+def test_usb_run_command():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value="") as mock_run:
+        result = runner.invoke(
+            app,
+            ["usb", "run", "/dev/bus/usb/001/002", "--command", "lsusb.sh", "--env-fd", "--request"],
+        )
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-usb",
+        args=["-r", "-e", "lsusb.sh", "-E", "/dev/bus/usb/001/002"],
+        timeout=120.0,
+    )
+
+
+def test_nfc_read_short_by_default():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value={}) as mock_run:
+        result = runner.invoke(app, ["nfc", "read"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-nfc", args=["-r", "short"], timeout=120.0)
+
+
+def test_nfc_read_full():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value={}) as mock_run:
+        result = runner.invoke(app, ["nfc", "read", "--full"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with("termux-nfc", args=["-r", "full"], timeout=120.0)
+
+
+def test_nfc_write():
+    with patch("termux_toolbox.commands.device.run_termux_api", return_value={}) as mock_run:
+        result = runner.invoke(app, ["nfc", "write", "hello tag"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once_with(
+        "termux-nfc", args=["-w", "-t", "hello tag"], timeout=120.0
+    )

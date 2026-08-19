@@ -53,10 +53,32 @@ mgt mic stop
 mgt share /sdcard/photo.jpg --action send
 mgt saf dirs
 mgt saf ls content://tree/primary%3ADownload
+mgt dialog text --title "Name" --hint "First name"
+mgt dialog radio red green blue --title "Pick a colour"
+mgt dialog confirm --title "Deploy?"
+mgt job schedule /data/data/com.termux/files/home/backup.sh --period-ms 900000 --charging
+mgt job list
+mgt job cancel 3
+mgt keystore generate mykey --algorithm EC --size 256
+mgt keystore sign mykey SHA256withECDSA < data.bin > data.sig
+mgt keystore verify mykey SHA256withECDSA data.sig < data.bin
+mgt usb list
+mgt usb permission /dev/bus/usb/001/002 --request
+mgt nfc read --full
+mgt nfc write "hello tag"
+mgt api start
 ```
 
 Every command supports `--json` (placed before the command, e.g. `mgt --json battery`) for
 scriptable output.
+
+## Coverage
+
+Every command shipped by the `termux-api` package is wrapped, with each binary's full option set
+exposed. Two files in that package are deliberately left out: `termux-sms-inbox`, which upstream
+replaced with `termux-sms-list`, and `termux-callback`, an internal helper the Termux:API app
+invokes on its own. `termux-sms-list`'s legacy `-d`/`-n` flags are also skipped — upstream keeps
+them only for backward compatibility.
 
 ## Running tests
 
@@ -94,6 +116,13 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt download "https://example.com/file.zip"` — a real download starts, visible in the notification shade
 - [ ] `mgt share /sdcard/photo.jpg` — the Android share sheet appears with the photo attached
 - [ ] `mgt notification list` after `mgt notify "Test" "Body"` — the notification appears in the list; `mgt notification remove <id>` clears it
+- [ ] `mgt dialog text --title "Name"` — the input dialog appears and the typed text comes back
+- [ ] `mgt dialog radio a b c` — the radio dialog appears and the picked value comes back
+- [ ] `mgt job schedule ~/hello.sh --period-ms 900000` then `mgt job list` then `mgt job cancel <id>` — the job is scheduled, listed, and cancelled
+- [ ] `mgt keystore generate smoketest --algorithm EC` then `mgt keystore list` then `mgt keystore delete smoketest` — the key round-trips
+- [ ] `mgt usb list` — lists attached USB devices (empty list is a valid result)
+- [ ] `mgt nfc read` — prompts for a tag on NFC-capable devices
+- [ ] `mgt api start` — the Termux:API keep-alive service starts without error
 
 ## License
 

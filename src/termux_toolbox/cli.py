@@ -1,6 +1,15 @@
 import typer
 
-from termux_toolbox.commands import device, feedback, media, messaging, sensors, storage
+from termux_toolbox.commands import (
+    device,
+    dialog,
+    feedback,
+    media,
+    messaging,
+    sensors,
+    storage,
+    system,
+)
 
 app = typer.Typer(help="A CLI toolbox exposing Termux:API device capabilities.")
 
@@ -50,6 +59,14 @@ app.command("brightness")(device.brightness)
 app.command("audio-info")(device.audio_info)
 app.command("wallpaper")(device.wallpaper)
 app.add_typer(device.wifi_app, name="wifi")
+app.add_typer(device.usb_app, name="usb")
+app.add_typer(device.nfc_app, name="nfc")
 
 app.command("storage-get")(storage.storage_get)
 app.add_typer(storage.saf_app, name="saf")
+
+app.add_typer(dialog.dialog_app, name="dialog")
+
+app.add_typer(system.job_app, name="job")
+app.add_typer(system.keystore_app, name="keystore")
+app.add_typer(system.api_app, name="api")
