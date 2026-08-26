@@ -72,6 +72,8 @@ mgt api start
 Every command supports `--json` (placed before the command, e.g. `mgt --json battery`) for
 scriptable output.
 
+See [docs/EXAMPLES.md](docs/EXAMPLES.md) for a comprehensive example of every command and flag.
+
 ## Coverage
 
 Every command shipped by the `termux-api` package is wrapped, with each binary's full option set
