@@ -96,6 +96,30 @@ mgt sms send 5551234 "hello"
 mgt sms send 5551234,5555678 "hello everyone" --slot 1   # comma-separated recipients
 ```
 
+### `sms schedule` / `sms scheduled`
+
+`schedule` saves the message to disk instead of sending it immediately, so it survives
+Termux being killed or the device rebooting; give it exactly one of `--at` (a local
+time) or `--in` (a duration like `2h`, `45m`, or `1h30m`). The first time you schedule
+anything, it also registers a recurring `mgt job` (Android's `JobScheduler`, ~15-minute
+minimum period) that checks for and sends due messages — so delivery can lag up to
+~15 minutes after the target time, and nothing sends until that job actually ticks. A
+failed send is retried automatically up to 3 times before being marked `failed`; it then
+stays visible in `scheduled list` (rather than vanishing) until you `scheduled cancel` it.
+`scheduled run-due` is what the background job calls — run it by hand to force an
+immediate check instead of waiting for the next tick.
+
+```bash
+mgt sms schedule 5551234 "don't forget the meeting" --at "2026-08-27 15:00"
+mgt sms schedule 5551234,5555678 "reminder" --in 2h --slot 1
+mgt sms schedule 5551234 "hi" --at "2026-08-27 15:00" --in 1h
+# Error: provide exactly one of --at or --in.
+
+mgt sms scheduled list
+mgt sms scheduled run-due     # force an immediate check instead of waiting for the job
+mgt sms scheduled cancel 62d44af8
+```
+
 ### `call` / `call-log`
 
 ```bash

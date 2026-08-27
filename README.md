@@ -28,6 +28,10 @@ mgt sms list --type inbox --from 5551234
 mgt sms list --selection "type == 1 and body LIKE 'Foo %'" --limit 1
 mgt sms list --conversations --conversation-multiple-messages --conversation-nested
 mgt sms send 5551234,5555678 "hello" --slot 1
+mgt sms schedule 5551234 "hello later" --at "2026-08-27 15:00"
+mgt sms schedule 5551234 "hello later" --in 2h
+mgt sms scheduled list
+mgt sms scheduled cancel 62d44af8
 mgt call-log --limit 5
 mgt location --provider network --request last
 mgt sensor list
@@ -82,6 +86,10 @@ replaced with `termux-sms-list`, and `termux-callback`, an internal helper the T
 invokes on its own. `termux-sms-list`'s legacy `-d`/`-n` flags are also skipped — upstream keeps
 them only for backward compatibility.
 
+`sms schedule`/`sms scheduled` is the one exception to the thin-wrapper rule above: it's built
+on top of `termux-sms-send` and `termux-job-scheduler` rather than mapping to a single
+`termux-api` binary, adding its own local state file to track pending sends.
+
 ## Running tests
 
 ```bash
@@ -102,6 +110,7 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt sms list --limit 3` — prompts for SMS permission on first run, then lists real messages
 - [ ] `mgt sms list --conversations --conversation-nested --conversation-multiple-messages` — returns nested conversations
 - [ ] `mgt sms list --type inbox --limit 1 --no-order-reverse` — filters by type and prints newest first
+- [ ] `mgt sms schedule <your-number> "test" --in 1m` then wait a minute and `mgt sms scheduled run-due` — a real SMS actually sends and the entry disappears from `mgt sms scheduled list`
 - [ ] `mgt sensor all --limit 1` then `mgt sensor cleanup` — reads every sensor once, then releases them
 - [ ] `mgt mic record /sdcard/memo.m4a --duration 0` then `mgt mic info` then `mgt mic stop` — records, reports, and stops
 - [ ] `mgt contacts list` — prompts for contacts permission on first run, then lists real contacts

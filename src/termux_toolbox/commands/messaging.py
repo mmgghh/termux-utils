@@ -1,13 +1,24 @@
+import time
 from enum import Enum
 
 import typer
 
-from termux_toolbox.core.errors import handle_errors
+from termux_toolbox.core import scheduled_sms
+from termux_toolbox.core.errors import TermuxToolboxError, handle_errors
 from termux_toolbox.core.exec import run_termux_api
 from termux_toolbox.core.output import is_json_mode, render
 
 sms_app = typer.Typer(help="Read and send SMS messages.")
+scheduled_app = typer.Typer(help="Manage SMS messages scheduled with 'mgt sms schedule'.")
+sms_app.add_typer(scheduled_app, name="scheduled")
 contacts_app = typer.Typer(help="Read device contacts.")
+
+# Reserved termux-job-scheduler job ID for the recurring "send due scheduled SMS" job
+# registered by 'mgt sms schedule'. Fixed so repeated registrations overwrite the same
+# job instead of accumulating duplicates; picking your own --job-id with 'mgt job
+# schedule' equal to this would silently overwrite it (an accepted, documented trade-off).
+RUN_DUE_JOB_ID = "999001"
+RUN_DUE_PERIOD_MS = "900000"
 
 # termux-sms-list documents 'date DESC' as its conversation sort default, but only
 # forwards --conversation-return-no-order-reverse when a sort order is also set, so
@@ -137,6 +148,14 @@ def sms_list(
     render(result, as_json=is_json_mode(ctx))
 
 
+def _build_sms_send_args(number: str, message: str, slot: int | None) -> list[str]:
+    args = ["-n", number]
+    if slot is not None:
+        args += ["-s", str(slot)]
+    args.append(message)
+    return args
+
+
 @sms_app.command("send")
 @handle_errors
 def sms_send(
@@ -150,12 +169,105 @@ def sms_send(
     ),
 ) -> None:
     """Send an SMS message."""
-    args = ["-n", number]
-    if slot is not None:
-        args += ["-s", str(slot)]
-    args.append(message)
-    result = run_termux_api("termux-sms-send", args=args)
+    result = run_termux_api("termux-sms-send", args=_build_sms_send_args(number, message, slot))
     render(result, as_json=is_json_mode(ctx))
+
+
+def _ensure_run_due_job_registered() -> None:
+    script_path = scheduled_sms.state_dir() / "run-due.sh"
+    if not script_path.exists():
+        script_path.write_text(
+            "#!/data/data/com.termux/files/usr/bin/sh\nmgt sms scheduled run-due\n"
+        )
+        script_path.chmod(0o755)
+    try:
+        run_termux_api(
+            "termux-job-scheduler",
+            args=[
+                "--script", str(script_path),
+                "--job-id", RUN_DUE_JOB_ID,
+                "--period-ms", RUN_DUE_PERIOD_MS,
+                "--persisted", "true",
+            ],
+        )
+    except TermuxToolboxError as exc:
+        typer.echo(
+            f"Warning: could not schedule automatic delivery ({exc}). Run "
+            "'mgt sms scheduled run-due' manually, or wire it into cron/Termux:Boot yourself.",
+            err=True,
+        )
+
+
+@sms_app.command("schedule")
+@handle_errors
+def sms_schedule(
+    ctx: typer.Context,
+    number: str = typer.Argument(
+        ..., help="Recipient phone number, or several separated by commas."
+    ),
+    message: str = typer.Argument(..., help="Message text to send later."),
+    at: str | None = typer.Option(
+        None, "--at", help="Absolute local time to send at, e.g. '2026-08-27 15:00'."
+    ),
+    in_: str | None = typer.Option(
+        None, "--in", help="Relative delay before sending, e.g. '2h', '45m', '1h30m'."
+    ),
+    slot: int | None = typer.Option(
+        None, "--slot", "-s", help="SIM slot to send from (requires READ_PHONE_STATE)."
+    ),
+) -> None:
+    """Schedule an SMS to send at a future time (see 'mgt sms scheduled')."""
+    now = time.time()
+    try:
+        send_at_epoch = scheduled_sms.resolve_target_epoch(at, in_, now)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}.", err=True)
+        raise typer.Exit(code=1) from exc
+
+    entry_id = scheduled_sms.add(number, message, send_at_epoch, slot=slot, now=now)
+    _ensure_run_due_job_registered()
+    render(
+        {"id": entry_id, "number": number, "send_at_epoch": send_at_epoch, "status": "pending"},
+        as_json=is_json_mode(ctx),
+    )
+
+
+@scheduled_app.command("list")
+@handle_errors
+def scheduled_list(ctx: typer.Context) -> None:
+    """List pending and failed scheduled SMS sends."""
+    render(scheduled_sms.list_entries(), as_json=is_json_mode(ctx))
+
+
+@scheduled_app.command("cancel")
+@handle_errors
+def scheduled_cancel(
+    ctx: typer.Context,
+    entry_id: str = typer.Argument(
+        ..., help="ID of the scheduled send to cancel (see 'mgt sms scheduled list')."
+    ),
+) -> None:
+    """Cancel a pending or failed scheduled SMS send."""
+    if not scheduled_sms.cancel(entry_id):
+        typer.echo(f"Error: no scheduled send with id '{entry_id}'.", err=True)
+        raise typer.Exit(code=1)
+    render(f"Cancelled {entry_id}.", as_json=is_json_mode(ctx))
+
+
+@scheduled_app.command("run-due")
+@handle_errors
+def scheduled_run_due(ctx: typer.Context) -> None:
+    """Send every scheduled SMS that's due (invoked periodically by 'mgt sms schedule')."""
+    results = []
+    for entry in scheduled_sms.pop_due(time.time()):
+        args = _build_sms_send_args(entry["number"], entry["message"], entry["slot"])
+        try:
+            run_termux_api("termux-sms-send", args=args)
+            results.append({"id": entry["id"], "status": "sent"})
+        except TermuxToolboxError as exc:
+            updated = scheduled_sms.record_failure(entry, str(exc))
+            results.append({"id": entry["id"], "status": updated["status"], "error": str(exc)})
+    render(results, as_json=is_json_mode(ctx))
 
 
 @handle_errors
