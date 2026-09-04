@@ -1,5 +1,6 @@
 import typer
 
+from termux_toolbox import interactive
 from termux_toolbox.commands import (
     device,
     dialog,
@@ -70,3 +71,9 @@ app.add_typer(dialog.dialog_app, name="dialog")
 app.add_typer(system.job_app, name="job")
 app.add_typer(system.keystore_app, name="keystore")
 app.add_typer(system.api_app, name="api")
+
+
+@app.command("interactive")
+def interactive_command() -> None:
+    """Browse and run commands through an interactive menu."""
+    interactive.run(app)

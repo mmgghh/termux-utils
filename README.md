@@ -21,6 +21,7 @@ This installs the `mgt` command and pulls in `pytest` for running the test suite
 
 ```bash
 mgt --help
+mgt interactive
 mgt battery
 mgt --json battery | jq .percentage
 mgt sms list --limit 5
@@ -78,6 +79,15 @@ scriptable output.
 
 See [docs/EXAMPLES.md](docs/EXAMPLES.md) for a comprehensive example of every command and flag.
 
+### Interactive mode
+
+`mgt interactive` browses every command through an arrow-key menu and prompts for each option,
+instead of typing flags by hand. It builds on the same command definitions as the regular CLI, so
+it stays in sync automatically as commands are added or changed. It needs a real terminal — it
+works fine in Termux's terminal app, but not when stdin/stdout are piped or redirected. Commands
+that read binary data from stdin (`keystore sign`/`verify`) are still listed but are an awkward
+fit for the prompted flow; run those directly instead.
+
 ## Coverage
 
 Every command shipped by the `termux-api` package is wrapped, with each binary's full option set
@@ -134,6 +144,7 @@ real binaries. Before relying on a new or changed command, run it for real on-de
 - [ ] `mgt usb list` — lists attached USB devices (empty list is a valid result)
 - [ ] `mgt nfc read` — prompts for a tag on NFC-capable devices
 - [ ] `mgt api start` — the Termux:API keep-alive service starts without error
+- [ ] `mgt interactive` — arrow keys navigate the menu, prompted values run the underlying command correctly, Ctrl+C backs out a level instead of crashing
 
 ## License
 
