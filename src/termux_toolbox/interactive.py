@@ -31,6 +31,10 @@ def ask_select(message: str, choices: list[str], default: str | None = None) -> 
     return result
 
 
+def ask_continue(message: str = "Press any key to continue...") -> None:
+    questionary.press_any_key_to_continue(message).ask()
+
+
 def _default_str(default: object) -> str | None:
     if default is None:
         return None
@@ -153,3 +157,4 @@ def run(app: typer.Typer) -> None:
         typer.echo(result.output, nl=False)
         if result.exception is not None and not isinstance(result.exception, SystemExit):
             typer.echo(f"Unexpected error: {result.exception}", err=True)
+        ask_continue()

@@ -174,6 +174,7 @@ def test_run_executes_selected_leaf_command_and_prints_output(monkeypatch, capsy
     app = _sample_app()
     monkeypatch.setattr(interactive, "_is_interactive_terminal", lambda: True)
     monkeypatch.setattr(interactive, "ask_confirm", lambda *a, **k: False)
+    monkeypatch.setattr(interactive, "ask_continue", lambda *a, **k: None)
 
     selections = iter(["battery", "Exit"])
     monkeypatch.setattr(interactive, "ask_select", lambda *a, **k: next(selections))
@@ -187,6 +188,7 @@ def test_run_navigates_into_group_and_back(monkeypatch, capsys):
     app = _sample_app()
     monkeypatch.setattr(interactive, "_is_interactive_terminal", lambda: True)
     monkeypatch.setattr(interactive, "ask_confirm", lambda *a, **k: False)
+    monkeypatch.setattr(interactive, "ask_continue", lambda *a, **k: None)
 
     selections = iter(["things", "list", "Back", "Exit"])
     monkeypatch.setattr(interactive, "ask_select", lambda *a, **k: next(selections))
@@ -218,6 +220,7 @@ def test_run_prepends_json_flag_when_requested(monkeypatch, capsys):
     app = _sample_app()
     monkeypatch.setattr(interactive, "_is_interactive_terminal", lambda: True)
     monkeypatch.setattr(interactive, "ask_confirm", lambda *a, **k: True)
+    monkeypatch.setattr(interactive, "ask_continue", lambda *a, **k: None)
 
     selections = iter(["mode", "Exit"])
     monkeypatch.setattr(interactive, "ask_select", lambda *a, **k: next(selections))
@@ -225,6 +228,41 @@ def test_run_prepends_json_flag_when_requested(monkeypatch, capsys):
     interactive.run(app)
 
     assert "json" in capsys.readouterr().out
+
+
+def test_run_pauses_for_a_keypress_after_running_a_command(monkeypatch, capsys):
+    app = _sample_app()
+    monkeypatch.setattr(interactive, "_is_interactive_terminal", lambda: True)
+    monkeypatch.setattr(interactive, "ask_confirm", lambda *a, **k: False)
+
+    pauses = []
+    monkeypatch.setattr(interactive, "ask_continue", lambda *a, **k: pauses.append(True))
+
+    selections = iter(["battery", "Exit"])
+    monkeypatch.setattr(interactive, "ask_select", lambda *a, **k: next(selections))
+
+    interactive.run(app)
+
+    assert pauses == [True]
+
+
+def test_run_does_not_pause_when_command_prompt_is_cancelled(monkeypatch):
+    app = _sample_app()
+    monkeypatch.setattr(interactive, "_is_interactive_terminal", lambda: True)
+    monkeypatch.setattr(interactive, "ask_confirm", lambda *a, **k: False)
+
+    def fake_build_argv(cmd):
+        raise interactive.Cancelled
+
+    monkeypatch.setattr(interactive, "build_argv", fake_build_argv)
+    monkeypatch.setattr(
+        interactive, "ask_continue", lambda *a, **k: pytest.fail("should not pause")
+    )
+
+    selections = iter(["battery", "Exit"])
+    monkeypatch.setattr(interactive, "ask_select", lambda *a, **k: next(selections))
+
+    interactive.run(app)
 
 
 def test_run_requires_a_terminal(monkeypatch):
